@@ -1,96 +1,101 @@
-const roomRepo = require("../room.repo");
+const { faker } = require("@faker-js/faker");
+const { Room } = require("../../database/models");
+const { createRoom, findRoom, findRoomWithCode, getAllRoom, updateGuestUser, updateRoom } = require("../room.repo");
+const fakeData = {
+    roomName: faker.random.words(2),
+    hostUserId: faker.datatype.number()
+}
 
-const testData = {
-  roomName: "room test",
-  hostUserId: 1,
-};
+beforeAll(async () => {
+    roomTest = await createRoom(fakeData);
+});
 
-describe("room.repo.test", () => {
-  describe("test createRoom", () => {
-    it("should create a new room", async () => {
-      const result = await roomRepo.createRoom(testData);
-
-      expect(result.roomName).toBe(testData.roomName);
-      expect(result.hostUserId).toBe(testData.hostUserId);
+describe('room.repo.test', () => {
+    describe('createRoom', () => {
+        it('should create a new room', async () => {
+            const result = await createRoom(fakeData);
+            expect(result.dataValues).toEqual(
+              expect.objectContaining(fakeData)
+            );
+        });
     });
-  });
 
-  describe("test findRoomWithCode", () => {
-    it("should return the room object for the given roomCode", async () => {
-      const expectedRoom = await roomRepo.findRoom(1);
+    describe('updateRoom', () => {
+        it('should update a room', async () => {
+            let guestUserId = faker.datatype.number();
+            let hostScore = 2;
+            let guestScore = 3;
+            let hostSelection = 1;
+            let guestSelection = 1;
+            let turn = 1;
+            let isFinished = 1;
 
-      const result = await roomRepo.findRoomWithCode({ roomCode: expectedRoom.roomCode });
+            const result = await updateRoom(roomTest.id,
+                guestUserId,
+                hostScore,
+                guestScore,
+                hostSelection,
+                guestSelection,
+                turn,
+                isFinished);
 
-      expect(result.roomName).toBe(testData.roomName);
-      expect(result.hostUserId).toBe(testData.hostUserId);
+            expect(result[0]).toEqual(1);
+            expect(result[1][0]).toEqual(
+                expect.objectContaining({
+                    guestUserId : guestUserId,
+                    hostScore : hostScore,
+                    guestScore: guestScore,
+                    hostSelection: hostSelection,
+                    guestSelection: guestSelection,
+                    turn: turn,
+                    isFinished: true
+                  })
+            );
+        });
     });
-  });
 
-  describe("test findRoom", () => {
-    it("should return the room for the given roomId", async () => {
-      const result = await roomRepo.findRoom(1);
+    describe('updateGuestUser', () => {
+        it('should update guest user room', async () => {
+            const guestUserId = faker.datatype.number();
 
-      expect(result.roomName).toBe("room test");
-      expect(result.hostUserId).toBe(testData.hostUserId);
+            const result = await updateGuestUser({id: roomTest.id, guestUserId});
+            expect(result[0]).toBe(1);
+            console.log(result)
+            expect(result[1][0].id).toBe(roomTest.id);
+            expect(result[1][0].guestUserId).toBe(guestUserId);
+        });
     });
-  });
 
-  describe("test updateRoom", () => {
-    it("should update the room", async () => {
-      const newValues = {
-        id: 1,
-        guestUserId: 2,
-        hostScore: 1,
-        guestScore: 1,
-        hostSelection: 1,
-        guestSelection: 1,
-        turn: 1,
-        isFinished: true,
-      };
-
-      await roomRepo.updateRoom(
-        newValues.id,
-        newValues.guestUserId,
-        newValues.hostScore,
-        newValues.guestScore,
-        newValues.hostSelection,
-        newValues.guestSelection,
-        newValues.turn,
-        newValues.isFinished,
-      );
-      const updatedRoom = await roomRepo.findRoom(1);
-
-
-      expect(updatedRoom.guestUserId).toBe(newValues.guestUserId);
-      expect(updatedRoom.hostScore).toBe(newValues.hostScore);
-      expect(updatedRoom.guestScore).toBe(newValues.guestScore);
-      expect(updatedRoom.hostSelection).toBe(newValues.hostSelection);
-      expect(updatedRoom.guestSelection).toBe(newValues.guestSelection);
-      expect(updatedRoom.turn).toBe(newValues.turn);
-      expect(updatedRoom.isFinished).toBe(newValues.isFinished);
+    describe('getAllRoom', () => {
+        it('should return all room', async () => {
+            Room.findAll = jest.fn();
+            Room.findAll.mockReturnValue(fakeData);
+            const result = await getAllRoom();
+            expect(result).toEqual(
+                expect.objectContaining(fakeData)
+            );
+        });
     });
-  });
 
-  describe("test updateGuestUser", () => {
-    it("should update the room's guest user id", async () => {
-      const newValues = {
-        id: 1,
-        guestUserId: 3,
-      };
+    
 
-      await roomRepo.updateGuestUser(newValues)
-      const updatedRoom = await roomRepo.findRoom(1);
+    // describe('findRoomWithCode', () => {
+    //   it("should return the room object for the given roomCode", async () => {
+    //     const result = await findRoomWithCode({ roomCode: 1 });
+    //     expect(roomTest).toEqual(
+    //       expect.objectContaining(result)
+    //     );
+    //   });
+    // });
+   
+  
 
-      expect(updatedRoom.guestUserId).toBe(newValues.guestUserId);
-    });
-  });
-
-  describe('test getAllRoom', () => {
-    it('should return an array of room', async () => {
-      const result = await roomRepo.getAllRoom()
-
-      expect(result[0].roomName).toBeTruthy();
-      expect(result[0].roomCode).toBeTruthy();
-    });
+    describe('findRoom', () => {
+      it('should return a specific room', async () => {
+          const result = await findRoom(roomTest.id);
+          expect(roomTest).toEqual(
+              expect.objectContaining(result)
+            );
+      });
   });
 });
